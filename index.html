@@ -1,17 +1,70 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR Pizza with Smoke</title>
+  <title>AR Pizza with Native Smoke</title>
 
   <!-- A-Frame Core -->
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
   <!-- MindAR Image Tracking -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <!-- Particle System Component (Maintained Fork) -->
-  <script src="https://cdn.jsdelivr.net/npm/@c-frame/aframe-particle-system-component@1.0.0/dist/aframe-particle-system-component.min.js"></script>
 
+  <!-- Custom Native Smoke Component (No external libraries needed!) -->
+  <script>
+    AFRAME.registerComponent('steam-effect', {
+      init: function () {
+        // Create 15 smoke puffs
+        for (let i = 0; i < 15; i++) {
+          const puff = document.createElement('a-circle');
+          
+          // Basic styling for the puff
+          puff.setAttribute('material', { color: '#dddddd', opacity: 0, transparent: true, side: 'double' });
+          puff.setAttribute('scale', '0.1 0.1 0.1');
+          
+          // Randomize starting positions slightly above the pizza
+          const startX = (Math.random() - 0.5) * 0.4;
+          const startZ = (Math.random() - 0.5) * 0.4;
+          puff.setAttribute('position', `${startX} 0.2 ${startZ}`);
+
+          // Add billboard so the circles always face the camera
+          puff.setAttribute('billboard', '');
+
+          // Animation 1: Move up
+          puff.setAttribute('animation__pos', {
+            property: 'position',
+            to: `${startX} 0.8 ${startZ}`,
+            dur: 3000 + Math.random() * 2000,
+            loop: true,
+            delay: Math.random() * 2000
+          });
+
+          // Animation 2: Grow bigger
+          puff.setAttribute('animation__scale', {
+            property: 'scale',
+            from: '0.1 0.1 0.1',
+            to: '0.4 0.4 0.4',
+            dur: 3000 + Math.random() * 2000,
+            loop: true,
+            delay: Math.random() * 2000
+          });
+
+          // Animation 3: Fade in and out
+          puff.setAttribute('animation__fade', {
+            property: 'material.opacity',
+            from: 0,
+            to: 0.4,
+            dur: 1500,
+            direction: 'alternate',
+            loop: true,
+            delay: Math.random() * 2000
+          });
+
+          this.el.appendChild(puff);
+        }
+      }
+    });
+  </script>
 </head>
 <body>
   <a-scene 
@@ -42,12 +95,11 @@
         visible="false"
       ></a-entity>
 
-      <!-- 2. The Smoke Effect using a Base64 embedded texture -->
+      <!-- 2. The Native Smoke Effect -->
       <a-entity 
-        id="smokeEmitter"
-        position="0 0.3 0" 
+        id="smokeContainer"
+        steam-effect
         visible="false"
-        particle-system="preset: smoke; texture: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=; color: #ffffff; size: 0.5; velocity: 0.3; opacity: 0.4; particleCount: 40;"
       ></a-entity>
 
     </a-entity>
@@ -56,18 +108,18 @@
   <script>
     const imageTarget = document.querySelector('#imageTarget');
     const arModel = document.querySelector('#arModel');
-    const smokeEmitter = document.querySelector('#smokeEmitter');
+    const smokeContainer = document.querySelector('#smokeContainer');
 
     // Show model and smoke when target is found
     imageTarget.addEventListener('targetFound', () => {
       arModel.setAttribute('visible', 'true');
-      smokeEmitter.setAttribute('visible', 'true');
+      smokeContainer.setAttribute('visible', 'true');
     });
 
     // Hide model and smoke when target is lost
     imageTarget.addEventListener('targetLost', () => {
       arModel.setAttribute('visible', 'false');
-      smokeEmitter.setAttribute('visible', 'false');
+      smokeContainer.setAttribute('visible', 'false');
     });
   </script>
 </body>
