@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AR Video – Scan & Place on Table</title>
+
+  <!-- A-Frame (core) -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- MindAR (image tracking) -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <!-- A-Frame WebXR Hit-Test component (for surface placement) -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/aframe-hit-test@1.0.0/dist/aframe-hit-test.min.js"></script>
+
+  <style>
+    body { margin: 0; overflow: hidden; font-family: sans-serif; }
+    #detachBtn {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 14px 28px;
+      font-size: 18px;
+      background: #ff5722;
+      color: white;
+      border: none;
+      border-radius: 40px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 1000;
+      display: none;
+    }
+    #detachBtn:active { background: #e64a19; }
+    #instruction {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      z-index: 1000;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Detach button – appears after image is found -->
+  <button id="detachBtn">📌 Detach Video</button>
+
+  <!-- Instruction overlay for hit‑test phase -->
+  <div id="instruction">Tap on a surface to place the video</div>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 1: MindAR scene (image tracking)                       -->
+  <!-- ============================================================ -->
+  <a-scene
+    id="mindarScene"
+    mindar-image="imageTargetSrc: ./targets.mind;"
+    color-space="sRGB"
+    renderer="colorManagement: true, physicallyCorrectLights"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    embedded
+  >
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <a-entity mindar-image-target="targetIndex: 0" id="imageTarget">
+      <!-- Video is initially a child of the image target -->
+      <a-video
+        id="arVideo"
+        src="./video.mp4"
+        width="1.6"
+        height="0.9"
+        position="0 0.5 0"
+        rotation="0 0 0"
+        visible="false"
+        material="transparent: true"
+      ></a-video>
+    </a-entity>
+  </a-scene>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 2: WebXR scene (surface placement) – hidden initially  -->
+  <!-- ============================================================ -->
+  <a-scene
+    id="webxrScene"
+    style="display: none;"
+    webxr="optionalFeatures: hit-test;"
+    ar-hit-test="target: #videoToPlace;"
+    renderer="colorManagement: true; physicallyCorrectLights;"
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+  >
+    <a-camera position="0 1.6 0"></a-camera>
+
+    <!-- This entity will be placed on a surface by the hit‑test -->
+    <a-video
+      id="videoToPlace"
+      src="./video.mp4"
+      width="1.6"
+      height="0.9"
+      position="0 0 0"
+      rotation="0 0 0"
+      visible="false"
+      material="transparent: true"
+    ></a-video>
+
+    <!-- Optional reticle -->
+    <a-entity id="reticle" visible="false">
+      <a-ring color="white" radius-inner="0.1" radius-outer="0.15" rotation="-90 0 0"></a-ring>
+    </a-entity>
+  </a-scene>
+
+  <!-- ============================================================ -->
+  <!-- JAVASCRIPT LOGIC                                            -->
+  <!-- ============================================================ -->
+  <script>
+    // ---------- PHASE 1: MindAR logic ----------
+    const mindarScene = document.querySelector('#mindarScene');
+    const webxrScene = document.querySelector('#webxrScene');
+    const imageTarget = document.querySelector('#imageTarget');
+    const arVideo = document.querySelector('#arVideo');
+    const detachBtn = document.querySelector('#detachBtn');
+    const instruction = document.querySelector('#instruction');
+
+    let isDetached = false;
+
+    // When the image target is found, show the video and detach button
+    imageTarget.addEventListener('targetFound', () => {
+      console.log('Target found – showing video');
+      arVideo.setAttribute('visible', 'true');
+      // Play the video (mind the autoplay policies – muted attribute helps)
+      arVideo.components.material.material.map.image.play();
+      detachBtn.style.display = 'block';
+    });
+
+    // Hide video if target is lost (before detaching)
+    imageTarget.addEventListener('targetLost', () => {
+      if (!isDetached) {
+        arVideo.setAttribute('visible', 'false');
+        detachBtn.style.display = 'none';
+      }
+    });
+
+    // ---------- DETACH BUTTON ----------
+    detachBtn.addEventListener('click', () => {
+      if (isDetached) return;
+      isDetached = true;
+      detachBtn.style.display = 'none';
+
+      // 1. Pause MindAR tracking
+      const mindarSystem = mindarScene.systems['mindar-image-system'];
+      mindarSystem.pause(true);
+
+      // 2. Hide the MindAR scene and show the WebXR scene
+      mindarScene.style.display = 'none';
+      webxrScene.style.display = 'block';
+
+      // 3. Show instruction for hit‑test
+      instruction.style.display = 'block';
+
+      // 4. Start the WebXR session (required for hit‑test)
+      const webxrSceneEl = webxrScene;
+      // Request an immersive AR session
+      if (webxrSceneEl.xrSession) {
+        // Session already exists (rare) – just enable hit‑test
+        webxrSceneEl.emit('enter-ar');
+      } else {
+        // This will trigger the WebXR session
+        webxrSceneEl.enterVR(); // or enterAR() in newer versions
+      }
+    });
+
+    // ---------- WebXR Hit‑Test events ----------
+    // When a surface is found and the user taps, place the video
+    webxrScene.addEventListener('ar-hit-test-select', (evt) => {
+      const video = document.querySelector('#videoToPlace');
+      video.setAttribute('visible', 'true');
+      // The hit‑test component automatically positions the target entity
+      // (videoToPlace) at the tapped location.
+      // Hide the instruction
+      instruction.style.display = 'none';
+      // Optionally, play the video
+      video.components.material.material.map.image.play();
+    });
+
+    // Optional: show a reticle while scanning
+    webxrScene.addEventListener('ar-hit-test-achieved', () => {
+      console.log('Surface detected – ready to place');
+    });
+  </script>
+
+  <script>
+    // Register a simple component to handle video play/pause on MindAR
+    AFRAME.registerComponent('video-handler', {
+      init: function () {
+        // Nothing special – we handle events in the main script.
+      }
+    });
+  </script>
+
+</body>
+</html>
