@@ -9,7 +9,7 @@
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
   <!-- MindAR Image Tracking -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <!-- Particle System Component -->
+  <!-- Particle System Component (Maintained Fork) -->
   <script src="https://cdn.jsdelivr.net/npm/@c-frame/aframe-particle-system-component@1.0.0/dist/aframe-particle-system-component.min.js"></script>
 
 </head>
@@ -42,18 +42,12 @@
         visible="false"
       ></a-entity>
 
-      <!-- 2. The Smoke Effect -->
+      <!-- 2. The Smoke Effect using a Base64 embedded texture -->
       <a-entity 
         id="smokeEmitter"
         position="0 0.3 0" 
         visible="false"
-        particle-system="preset: smoke; 
-                         texture: https://cdn.glitch.global/5f0394a0-4c14-465c-b458-58f815c4f439/smoke.png;
-                         color: #ffffff; 
-                         size: 0.5; 
-                         velocity: 0.3; 
-                         opacity: 0.4; 
-                         particleCount: 40;"
+        particle-system="preset: smoke; texture: data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=; color: #ffffff; size: 0.5; velocity: 0.3; opacity: 0.4; particleCount: 40;"
       ></a-entity>
 
     </a-entity>
