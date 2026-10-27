@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR GLB with Smoke - Scan & Enjoy</title>
+  <title>AR Pizza & Smoke</title>
 
   <!-- A-Frame Core -->
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
   <!-- MindAR Image Tracking -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <!-- A-Frame Particle System Component -->
+  <!-- Particle System for Smoke -->
   <script src="https://unpkg.com/aframe-particle-system-component@1.0.0/dist/aframe-particle-system-component.min.js"></script>
 
 </head>
@@ -17,28 +17,33 @@
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.1; filterBeta: 10;"
     color-space="sRGB" 
-    renderer="colorManagement: true, physicallyCorrectLights" 
+    renderer="colorManagement: true; physicallyCorrectLights"
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false"
+    loading-screen="enabled: true; dots-color: black;"
   >
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- IMPORTANT: Loading the GLB file here prevents the blue screen -->
+    <a-assets timeout="10000">
+      <!-- Make sure this name matches your file exactly! -->
+      <a-asset-item id="pizzaModel" src="./VegPizza_small-v1.glb"></a-asset-item>
+    </a-assets>
 
     <!-- The image target entity -->
     <a-entity mindar-image-target="targetIndex: 0" id="imageTarget">
       
-      <!-- 1. The GLB Model (e.g., a burger or pizza) -->
-      <!-- Replace 'your-model.glb' with your actual model file -->
+      <!-- 1. The GLB Model -->
       <a-entity 
         id="arModel"
-        gltf-model="./VegPizza_small-v1.glb" 
+        gltf-model="#pizzaModel" 
         position="0 0 0" 
         scale="0.5 0.5 0.5"
         animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
         visible="false"
       ></a-entity>
 
-      <!-- 2. The Smoke Particle System attached to the model -->
-      <!-- This creates a continuous plume of smoke rising from the model -->
+      <!-- 2. The Smoke Particle System -->
       <a-entity 
         id="smokeEmitter"
         particle-system="preset: smoke; color: #FFFFFF; size: 0.5; velocity: 0.5; opacity: 0.6;"
@@ -54,21 +59,23 @@
     const arModel = document.querySelector('#arModel');
     const smokeEmitter = document.querySelector('#smokeEmitter');
 
-    // When the image target is found, show the model and start the smoke
+    // When the image target is found
     imageTarget.addEventListener('targetFound', () => {
       console.log("Target found!");
-      // Show the 3D model
       arModel.setAttribute('visible', 'true');
-      // Show and start the smoke effect
       smokeEmitter.setAttribute('visible', 'true');
-      // The particle system component handles the emission automatically once visible
     });
 
-    // When the image target is lost, hide everything
+    // When the image target is lost
     imageTarget.addEventListener('targetLost', () => {
       console.log("Target lost!");
       arModel.setAttribute('visible', 'false');
       smokeEmitter.setAttribute('visible', 'false');
+    });
+    
+    // Catch loading errors and show an alert so you know what went wrong
+    document.querySelector('a-assets').addEventListener('error', (e) => {
+      alert("Error loading file! Check the exact spelling of your file names. Missing file: " + e.detail.src);
     });
   </script>
 </body>
