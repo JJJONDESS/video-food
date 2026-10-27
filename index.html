@@ -3,21 +3,32 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR Test - Red Cube</title>
+  <title>AR Pizza Test</title>
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+  <!-- Add Draco Decoder in case the GLB is compressed -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/DRACOLoader.js"></script>
 </head>
 <body>
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind;"
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false"
+    loading-screen="enabled: false" 
   >
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
+    <!-- Note: loading-screen is disabled here so if it fails, you just get a black/transparent screen instead of the blue dots -->
+    <a-assets timeout="30000">
+      <a-asset-item id="pizzaModel" src="./VegPizza.glb"></a-asset-item>
+    </a-assets>
+
     <a-entity mindar-image-target="targetIndex: 0">
-      <!-- A simple red cube instead of the GLB -->
-      <a-box color="red" position="0 0 0" scale="0.5 0.5 0.5"></a-box>
+      <a-entity 
+        gltf-model="#pizzaModel" 
+        position="0 0 0" 
+        scale="0.5 0.5 0.5"
+      ></a-entity>
     </a-entity>
   </a-scene>
 </body>
