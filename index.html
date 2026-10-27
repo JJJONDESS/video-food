@@ -3,17 +3,35 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR Pizza & Smoke</title>
+  <title>AR Pizza - Diagnostic</title>
 
   <!-- A-Frame Core -->
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
   <!-- MindAR Image Tracking -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <!-- UPDATED: The maintained fork of the particle system component -->
-  <script src="https://cdn.jsdelivr.net/npm/@c-frame/aframe-particle-system-component@1.0.0/dist/aframe-particle-system-component.min.js"></script>
-
+  
+  <style>
+    #error-box {
+      position: fixed;
+      top: 20px;
+      left: 10px;
+      right: 10px;
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      z-index: 9999;
+      font-family: monospace;
+      display: none;
+      word-wrap: break-word;
+    }
+  </style>
 </head>
 <body>
+
+  <!-- This box will show us what file is missing -->
+  <div id="error-box"></div>
+
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.1; filterBeta: 10;"
     color-space="sRGB" 
@@ -26,7 +44,6 @@
 
     <!-- Loading the GLB file safely -->
     <a-assets timeout="10000">
-      <!-- IMPORTANT: Make sure this name matches your file exactly! -->
       <a-asset-item id="pizzaModel" src="./VegPizza.glb"></a-asset-item>
     </a-assets>
 
@@ -43,13 +60,7 @@
         visible="false"
       ></a-entity>
 
-      <!-- 2. The Smoke Particle System (Fixed) -->
-      <a-entity 
-        id="smokeEmitter"
-        particle-system="preset: smoke; texture: https://cdn.jsdelivr.net/gh/c-frame/aframe-particle-system-component@1.0.0/examples/textures/star2.png; color: #CCCCCC; size: 0.8; velocity: 0.2; opacity: 0.5; particleCount: 50;"
-        position="0 0.5 0" 
-        visible="false"
-      ></a-entity>
+      <!-- SMOKE TEMPORARILY REMOVED TO PREVENT CRASHES -->
 
     </a-entity>
   </a-scene>
@@ -57,25 +68,28 @@
   <script>
     const imageTarget = document.querySelector('#imageTarget');
     const arModel = document.querySelector('#arModel');
-    const smokeEmitter = document.querySelector('#smokeEmitter');
+    const errorBox = document.querySelector('#error-box');
 
-    // When the image target is found
+    // Catch loading errors and print them to the screen
+    document.querySelector('a-assets').addEventListener('error', (e) => {
+      errorBox.style.display = 'block';
+      errorBox.innerHTML = "❌ ERROR: Could not load file: <br><br>" + e.detail.src + "<br><br>Check if this file exists in your GitHub repository and the spelling matches EXACTLY.";
+    });
+
+    // Catch timeout errors (if the file is too big and takes too long)
+    document.querySelector('a-assets').addEventListener('timeout', (e) => {
+      errorBox.style.display = 'block';
+      errorBox.innerHTML = "⏳ TIMEOUT: The file took too long to load. It might be too large or your internet is slow. Missing file: " + e.detail.src;
+    });
+
     imageTarget.addEventListener('targetFound', () => {
       console.log("Target found!");
       arModel.setAttribute('visible', 'true');
-      smokeEmitter.setAttribute('visible', 'true');
     });
 
-    // When the image target is lost
     imageTarget.addEventListener('targetLost', () => {
       console.log("Target lost!");
       arModel.setAttribute('visible', 'false');
-      smokeEmitter.setAttribute('visible', 'false');
-    });
-    
-    // Catch loading errors
-    document.querySelector('a-assets').addEventListener('error', (e) => {
-      alert("Error loading file! Check the exact spelling of your file names. Missing file: " + e.detail.src);
     });
   </script>
 </body>
