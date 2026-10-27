@@ -51,29 +51,24 @@
   <button id="detachBtn">📌 Detach Video</button>
   <div id="instruction">Move your phone to scan a flat surface.<br>Tap on the floor/table to place the video.</div>
 
-  <!-- SINGLE A-FRAME SCENE -->
-  <!-- We add webxr to request hit-test, and disable all default UI buttons -->
+  <!-- SINGLE A-FRAME SCENE (WebXR is NOT here initially to prevent freezing) -->
   <a-scene
     id="mainScene"
     mindar-image="imageTargetSrc: ./targets.mind;"
     color-space="sRGB"
     renderer="colorManagement: true, physicallyCorrectLights"
-    webxr="optionalFeatures: hit-test;"
     vr-mode-ui="enabled: false"
-    xr-mode-ui="enabled: false"
     device-orientation-permission-ui="enabled: false"
   >
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
     <!-- PHASE 1: The Image Target -->
     <a-entity mindar-image-target="targetIndex: 0" id="imageTarget">
-      <!-- We wrap the video in a plane to control aspect ratio dynamically -->
-      <a-plane id="arVideoPlane" width="1.6" height="0.9" position="0 0.5 0" rotation="0 0 0" visible="false" material="transparent: true">
+      <!-- We wrap the video in a plane to help control the aspect ratio -->
+      <a-plane id="arVideoPlane" width="1" height="1" position="0 0 0" rotation="0 0 0" visible="false" material="transparent: true">
         <a-video
           id="arVideo"
           src="./video.mp4"
-          width="1.6"
-          height="0.9"
           position="0 0 0"
           rotation="0 0 0"
           material="transparent: true"
@@ -82,18 +77,15 @@
     </a-entity>
 
     <!-- PHASE 2: The Detached Video (Hidden initially) -->
-    <!-- We add ar-hit-test here. It is initially disabled. -->
     <a-video
       id="detachedVideo"
       src="./video.mp4"
-      width="1.6"
-      height="0.9"
+      width="1" 
+      height="1"
       position="0 0 0"
       rotation="0 0 0"
       visible="false"
       material="transparent: true"
-      ar-hit-test="target: #detachedVideo; enabled: false;"
-      hide-on-enter-ar
     ></a-video>
   </a-scene>
 
@@ -109,15 +101,24 @@
 
     let isDetached = false;
 
-    // Fix 1: Calculate correct aspect ratio for the video
-    // This ensures the video is not stretched on the image target
+    // FIX 1: Calculate correct aspect ratio for the video to stop stretching
+    // This waits for the video to load, reads its actual dimensions, and scales it.
     arVideo.addEventListener('loadedmetadata', () => {
       const videoEl = arVideo.components.material.material.map.image;
       if (videoEl && videoEl.videoWidth && videoEl.videoHeight) {
         const aspect = videoEl.videoWidth / videoEl.videoHeight;
-        const newHeight = 1.6 / aspect; // Keep width 1.6, adjust height
-        arVideo.setAttribute('height', newHeight);
-        arVideoPlane.setAttribute('height', newHeight);
+        // Scale video to a reasonable size based on its aspect ratio
+        const baseWidth = 1.0; 
+        const calculatedHeight = baseWidth / aspect;
+        
+        arVideo.setAttribute('width', baseWidth);
+        arVideo.setAttribute('height', calculatedHeight);
+        arVideoPlane.setAttribute('width', baseWidth);
+        arVideoPlane.setAttribute('height', calculatedHeight);
+
+        // Also set the size for the detached video!
+        detachedVideo.setAttribute('width', baseWidth);
+        detachedVideo.setAttribute('height', calculatedHeight);
       }
     });
 
@@ -136,37 +137,36 @@
       }
     });
 
-    // Fix 2: Detach button logic
+    // FIX 2: Detach button logic (Dynamically switching to WebXR)
     detachBtn.addEventListener('click', () => {
       if (isDetached) return;
       isDetached = true;
       detachBtn.style.display = 'none';
 
-      // 1. Pause MindAR tracking
+      // 1. Stop MindAR completely
       mainScene.systems['mindar-image-system'].pause(true);
-      
-      // 2. Hide the video that was attached to the image
+      mainScene.removeAttribute('mindar-image');
       arVideoPlane.setAttribute('visible', 'false');
 
-      // 3. Show instruction text
+      // 2. Show instruction text
       instruction.style.display = 'block';
 
-      // 4. Enable the Hit-Test on the new detached video
-      // We must enable it BEFORE entering AR
-      detachedVideo.setAttribute('ar-hit-test', 'enabled', true);
-      
-      // 5. Request the AR Camera Session (This must be inside the click handler)
-      mainScene.enterAR().catch((err) => {
-        console.error('Failed to enter AR:', err);
-        alert('WebXR AR is not supported on this device/browser.');
-      });
+      // 3. Dynamically activate WebXR and Hit-Test
+      mainScene.setAttribute('webxr', 'optionalFeatures: hit-test;');
+      detachedVideo.setAttribute('ar-hit-test', 'target: #detachedVideo;');
+
+      // 4. Wait a tiny fraction of a second for A-Frame to register WebXR, then start AR
+      setTimeout(() => {
+        mainScene.enterAR().catch((err) => {
+          console.error('Failed to enter AR:', err);
+          alert('Your device or browser does not support WebXR AR.');
+        });
+      }, 200);
     });
 
-    // WHEN A SURFACE IS TAPPED
+    // WHEN A SURFACE IS TAPPED AND THE VIDEO IS PLACED
     detachedVideo.addEventListener('ar-hit-test-select', (evt) => {
       instruction.style.display = 'none';
-      // The hit-test component automatically makes it visible and places it, 
-      // but we ensure it plays the video here:
       detachedVideo.components.material.material.map.image.play();
     });
   </script>
