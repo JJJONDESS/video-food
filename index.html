@@ -3,94 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR Pizza - Diagnostic</title>
-
-  <!-- A-Frame Core -->
+  <title>AR Test - Red Cube</title>
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
-  <!-- MindAR Image Tracking -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  
-  <style>
-    #error-box {
-      position: fixed;
-      top: 20px;
-      left: 10px;
-      right: 10px;
-      background: rgba(255, 0, 0, 0.9);
-      color: white;
-      padding: 15px;
-      border-radius: 8px;
-      z-index: 9999;
-      font-family: monospace;
-      display: none;
-      word-wrap: break-word;
-    }
-  </style>
 </head>
 <body>
-
-  <!-- This box will show us what file is missing -->
-  <div id="error-box"></div>
-
   <a-scene 
-    mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.1; filterBeta: 10;"
-    color-space="sRGB" 
-    renderer="colorManagement: true; physicallyCorrectLights"
+    mindar-image="imageTargetSrc: ./targets.mind;"
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false"
-    loading-screen="enabled: true; dots-color: white;"
   >
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- Loading the GLB file safely -->
-    <a-assets timeout="10000">
-      <a-asset-item id="pizzaModel" src="./VegPizza.glb"></a-asset-item>
-    </a-assets>
-
-    <!-- The image target entity -->
-    <a-entity mindar-image-target="targetIndex: 0" id="imageTarget">
-      
-      <!-- 1. The GLB Model -->
-      <a-entity 
-        id="arModel"
-        gltf-model="#pizzaModel" 
-        position="0 0 0" 
-        scale="0.5 0.5 0.5"
-        animation="property: rotation; to: 0 360 0; loop: true; dur: 10000; easing: linear;"
-        visible="false"
-      ></a-entity>
-
-      <!-- SMOKE TEMPORARILY REMOVED TO PREVENT CRASHES -->
-
+    <a-entity mindar-image-target="targetIndex: 0">
+      <!-- A simple red cube instead of the GLB -->
+      <a-box color="red" position="0 0 0" scale="0.5 0.5 0.5"></a-box>
     </a-entity>
   </a-scene>
-
-  <script>
-    const imageTarget = document.querySelector('#imageTarget');
-    const arModel = document.querySelector('#arModel');
-    const errorBox = document.querySelector('#error-box');
-
-    // Catch loading errors and print them to the screen
-    document.querySelector('a-assets').addEventListener('error', (e) => {
-      errorBox.style.display = 'block';
-      errorBox.innerHTML = "❌ ERROR: Could not load file: <br><br>" + e.detail.src + "<br><br>Check if this file exists in your GitHub repository and the spelling matches EXACTLY.";
-    });
-
-    // Catch timeout errors (if the file is too big and takes too long)
-    document.querySelector('a-assets').addEventListener('timeout', (e) => {
-      errorBox.style.display = 'block';
-      errorBox.innerHTML = "⏳ TIMEOUT: The file took too long to load. It might be too large or your internet is slow. Missing file: " + e.detail.src;
-    });
-
-    imageTarget.addEventListener('targetFound', () => {
-      console.log("Target found!");
-      arModel.setAttribute('visible', 'true');
-    });
-
-    imageTarget.addEventListener('targetLost', () => {
-      console.log("Target lost!");
-      arModel.setAttribute('visible', 'false');
-    });
-  </script>
 </body>
 </html>
