@@ -3,33 +3,78 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AR Pizza Test</title>
+  <title>AR Pizza with Smoke</title>
+
+  <!-- A-Frame Core -->
   <script src="https://aframe.io/releases/1.7.1/aframe.min.js"></script>
+  <!-- MindAR Image Tracking -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-  <!-- Add Draco Decoder in case the GLB is compressed -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/loaders/DRACOLoader.js"></script>
+  <!-- Particle System Component -->
+  <script src="https://cdn.jsdelivr.net/npm/@c-frame/aframe-particle-system-component@1.0.0/dist/aframe-particle-system-component.min.js"></script>
+
 </head>
 <body>
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind;"
+    color-space="sRGB" 
+    renderer="colorManagement: true; physicallyCorrectLights"
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false"
     loading-screen="enabled: false" 
   >
     <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-    <!-- Note: loading-screen is disabled here so if it fails, you just get a black/transparent screen instead of the blue dots -->
+    <!-- Load your model safely -->
     <a-assets timeout="30000">
       <a-asset-item id="pizzaModel" src="./VegPizza.glb"></a-asset-item>
     </a-assets>
 
-    <a-entity mindar-image-target="targetIndex: 0">
+    <!-- The image target entity -->
+    <a-entity mindar-image-target="targetIndex: 0" id="imageTarget">
+      
+      <!-- 1. The GLB Model -->
       <a-entity 
+        id="arModel"
         gltf-model="#pizzaModel" 
         position="0 0 0" 
         scale="0.5 0.5 0.5"
+        animation="property: rotation; to: 0 360 0; loop: true; dur: 15000; easing: linear;"
+        visible="false"
       ></a-entity>
+
+      <!-- 2. The Smoke Effect -->
+      <a-entity 
+        id="smokeEmitter"
+        position="0 0.3 0" 
+        visible="false"
+        particle-system="preset: smoke; 
+                         texture: https://cdn.glitch.global/5f0394a0-4c14-465c-b458-58f815c4f439/smoke.png;
+                         color: #ffffff; 
+                         size: 0.5; 
+                         velocity: 0.3; 
+                         opacity: 0.4; 
+                         particleCount: 40;"
+      ></a-entity>
+
     </a-entity>
   </a-scene>
+
+  <script>
+    const imageTarget = document.querySelector('#imageTarget');
+    const arModel = document.querySelector('#arModel');
+    const smokeEmitter = document.querySelector('#smokeEmitter');
+
+    // Show model and smoke when target is found
+    imageTarget.addEventListener('targetFound', () => {
+      arModel.setAttribute('visible', 'true');
+      smokeEmitter.setAttribute('visible', 'true');
+    });
+
+    // Hide model and smoke when target is lost
+    imageTarget.addEventListener('targetLost', () => {
+      arModel.setAttribute('visible', 'false');
+      smokeEmitter.setAttribute('visible', 'false');
+    });
+  </script>
 </body>
 </html>
